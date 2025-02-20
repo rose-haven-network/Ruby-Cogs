@@ -17,7 +17,7 @@ msgstr ""
 
 #: pokecord/dev.py:24
 #, docstring
-msgid "Pokecord Development Commands"
+msgid "Ava Pokemon Development Commands"
 msgstr ""
 
 #: pokecord/dev.py:28
@@ -288,7 +288,7 @@ msgid "You've already claimed your starter pokemon!"
 msgstr ""
 
 #: pokecord/pokecord.py:299
-msgid "Hey there trainer! Welcome to Pokecord. This is a ported plugin version of Pokecord adopted for use on Red.\\nIn order to get catchin' you must pick one of the starter Pokemon as listed below.\\n**Generation 1**\\nBulbasaur, Charmander and Squirtle\\n**Generation 2**\\nChikorita, Cyndaquil, Totodile\\n**Generation 3**\\nTreecko, Torchic, Mudkip\\n**Generation 4**\\nTurtwig, Chimchar, Piplup\\n**Generation 5**\\nSnivy, Tepig, Oshawott\\n**Generation 6**\\nChespin, Fennekin, Froakie\\n**Generation 7**\\nRowlet, Litten, Popplio\\n**Generation 8**\\nGrookey, Scorbunny, Sobble\\n"
+msgid "Hey there trainer! Welcome to Ava's Pokemon. \\nIn order to get catchin' you must pick one of the starter Pokemon as listed below.\\n**Generation 1**\\nBulbasaur, Charmander and Squirtle\\n**Generation 2**\\nChikorita, Cyndaquil, Totodile\\n**Generation 3**\\nTreecko, Torchic, Mudkip\\n**Generation 4**\\nTurtwig, Chimchar, Piplup\\n**Generation 5**\\nSnivy, Tepig, Oshawott\\n**Generation 6**\\nChespin, Fennekin, Froakie\\n**Generation 7**\\nRowlet, Litten, Popplio\\n**Generation 8**\\nGrookey, Scorbunny, Sobble\\n"
 msgstr ""
 
 #: pokecord/pokecord.py:311
@@ -368,12 +368,12 @@ msgstr ""
 
 #: pokecord/pokemixin.py:6
 #, docstring
-msgid "\\n    Pokecord commands\\n    "
+msgid "\\n    Ava's Pokemon commands\\n    "
 msgstr ""
 
 #: pokecord/settings.py:31
 #, docstring
-msgid "Toggle pokecord levelling messages on or off."
+msgid "Toggle Ava's Pokemon levelling messages on or off."
 msgstr ""
 
 #: pokecord/settings.py:37
@@ -386,29 +386,29 @@ msgstr ""
 
 #: pokecord/settings.py:45
 #, docstring
-msgid "Set the Pokecord locale to use for yourself."
+msgid "Set the Ava's Pokemon locale to use for yourself."
 msgstr ""
 
 #: pokecord/settings.py:48
-msgid "You've specified an invalid locale. Pokecord only supports English, Japanese, Chinese and French."
+msgid "You've specified an invalid locale. Ava's Pokemon only supports English, Japanese, Chinese and French."
 msgstr ""
 
 #: pokecord/settings.py:62
 #, docstring
-msgid "Manage pokecord settings"
+msgid "Manage Ava's Pokemon settings"
 msgstr ""
 
 #: pokecord/settings.py:67
 #, docstring
-msgid "Toggle pokecord on or off."
+msgid "Toggle Ava's Pokemon on or off."
 msgstr ""
 
 #: pokecord/settings.py:72
-msgid "Pokécord has been toggled on!"
+msgid "Ava's Pokemon has been toggled on!"
 msgstr ""
 
 #: pokecord/settings.py:74
-msgid "Pokécord has been toggled off!"
+msgid "Ava's Pokemon has been toggled off!"
 msgstr ""
 
 #: pokecord/settings.py:80
@@ -500,7 +500,7 @@ msgstr ""
 
 #: pokecord/trading.py:24
 #, docstring
-msgid "Pokecord Trading\\n\\n        Currently a work in progress."
+msgid "Ava's Pokemon Trading\\n\\n        Currently a work in progress."
 msgstr ""
 
 #: pokecord/trading.py:39
