@@ -29,7 +29,7 @@ class Nsfw(Core):
     @commands.is_owner()
     @commands.group()
     async def nsfwset(self, ctx: commands.Context):
-        """Settings for the Nsfw cog."""
+        """Settings for the NSFW cog."""
 
     @nsfwset.command()
     async def switchredditapi(self, ctx: commands.Context):
