@@ -22,7 +22,7 @@ _ = Translator("Pokecord", __file__)
 
 
 class GeneralMixin(MixinMeta):
-    """Pokecord General Commands"""
+    """Ava's Pokemon General commands"""
 
     @commands.max_concurrency(1, commands.BucketType.user)
     @commands.command(name="list", aliases=["pokemon"])

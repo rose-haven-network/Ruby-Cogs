@@ -17,12 +17,12 @@ _ = Translator("Pokecord", __file__)
 
 
 class Dev(MixinMeta):
-    """Pokecord Development Commands"""
+    """Ava's Pokemon Development Commands"""
 
     @poke.group(hidden=True)
     @commands.is_owner()
     async def dev(self, ctx):
-        """Pokecord Development Commands"""
+        """Ava's Pokemon Development Commands"""
 
     @dev.command(name="spawn")
     async def dev_spawn(self, ctx, *pokemon):
