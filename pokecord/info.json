@@ -1,8 +1,9 @@
 {
     "author": [
-        "flare(flare#0001)"
+        "flare(flare#0001)",
+        "valerie(1050531216589332581)"
     ],
-    "install_msg": "THIS COG IS NOT MAINTAINED. Thanks for installing and testing out the Pokecord rewrite for Red. If any errors occur, post in the #support-flare-cogs in the Red 3rd party server.",
+    "install_msg": "This cog will be updating and modified for our fork of Red (Ava)",
     "name": "Ava's Pokemon",
     "disabled": false,
     "short": "Pokecord for Red.",
