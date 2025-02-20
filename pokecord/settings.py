@@ -43,11 +43,11 @@ class SettingsMixin(MixinMeta):
     @poke.command()
     @commands.guild_only()
     async def locale(self, ctx, locale: str):
-        """Set the Pokecord locale to use for yourself."""
+        """Set the Ava's Pokemon locale to use for yourself."""
         if locale.lower() not in LOCALES:
             await ctx.send(
                 _(
-                    "You've specified an invalid locale. Pokecord only supports English, Japanese, Chinese and French."
+                    "You've specified an invalid locale. Ava's Pokemon only supports English"
                 )
             )
             return
@@ -65,14 +65,14 @@ class SettingsMixin(MixinMeta):
     @pokecordset.command(usage="type")
     @commands.admin_or_permissions(manage_guild=True)
     async def toggle(self, ctx, _type: bool = None):
-        """Toggle pokecord on or off."""
+        """Toggle Ava's Pokemon on or off."""
         if _type is None:
             _type = not await self.config.guild(ctx.guild).toggle()
         await self.config.guild(ctx.guild).toggle.set(_type)
         if _type:
-            await ctx.send(_("Pokécord has been toggled on!"))
+            await ctx.send(_("Ava's Pokemon has been toggled on!"))
             return
-        await ctx.send(_("Pokécord has been toggled off!"))
+        await ctx.send(_("Ava's Pokemon has been toggled off!"))
         await self.update_guild_cache()
 
     @pokecordset.command(usage="type")

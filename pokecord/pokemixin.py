@@ -4,7 +4,7 @@ from redbot.core import commands
 @commands.group(name="poke")
 async def poke(self, ctx: commands.Context):
     """
-    Pokecord commands
+    Ava's Pokemon commands
     """
 
 

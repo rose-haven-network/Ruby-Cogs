@@ -46,7 +46,7 @@ class Pokecord(
     commands.Cog,
     metaclass=CompositeMetaClass,
 ):
-    """Pokecord adapted to use on Red."""
+    """Ava's Pokemon adapted to use on Red."""
 
     __version__ = "0.0.1-alpha-23"
     __author__ = "flare"
@@ -198,7 +198,7 @@ class Pokecord(
                             },
                         )
                 await self.config.migration.set(_MIGRATION_VERSION)
-            log.info("Pokecord Migration complete.")
+            log.info("Ava's Pokemon Migration complete.")
 
         await self.update_guild_cache()
         await self.update_spawn_chance()
@@ -298,7 +298,7 @@ class Pokecord(
             return await ctx.send(_("You've already claimed your starter pokemon!"))
         if pokemon is None:
             msg = _(
-                "Hey there trainer! Welcome to Pokecord. This is a ported plugin version of Pokecord adopted for use on Red.\n"
+                "Hey there trainer! Welcome to Ava's Pokemon.\n"
                 "In order to get catchin' you must pick one of the starter Pokemon as listed below.\n"
                 "**Generation 1**\nBulbasaur, Charmander and Squirtle\n"
                 "**Generation 2**\nChikorita, Cyndaquil, Totodile\n"
@@ -308,6 +308,7 @@ class Pokecord(
                 "**Generation 6**\nChespin, Fennekin, Froakie\n"
                 "**Generation 7**\nRowlet, Litten, Popplio\n"
                 "**Generation 8**\nGrookey, Scorbunny, Sobble\n"
+                "**More to come in the future!\n"
             )
             msg += _("\nTo pick a pokemon, type {prefix}starter <pokemon>").format(
                 prefix=ctx.clean_prefix
