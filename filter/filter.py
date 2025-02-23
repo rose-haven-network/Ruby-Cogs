@@ -12,37 +12,39 @@ class FilterStorage:
     def _setup(self):
         self.cursor.execute("""
         CREATE TABLE IF NOT EXISTS filter_data (
-            key TEXT PRIMARY KEY,
-            value TEXT
+            guild_id INTEGER,
+            key TEXT,
+            value TEXT,
+            PRIMARY KEY (guild_id, key)
         )
         """)
         self.conn.commit()
     
-    def get(self, key):
-        self.cursor.execute("SELECT value FROM filter_data WHERE key = ?", (key,))
+    def get(self, guild_id, key):
+        self.cursor.execute("SELECT value FROM filter_data WHERE guild_id = ? AND key = ?", (guild_id, key))
         result = self.cursor.fetchone()
         return json.loads(result[0]) if result else []
     
-    def add(self, key, value):
-        data = self.get(key)
+    def add(self, guild_id, key, value):
+        data = self.get(guild_id, key)
         if value not in data:
             data.append(value)
-            self.cursor.execute("REPLACE INTO filter_data (key, value) VALUES (?, ?)", (key, json.dumps(data)))
+            self.cursor.execute("REPLACE INTO filter_data (guild_id, key, value) VALUES (?, ?, ?)", (guild_id, key, json.dumps(data)))
             self.conn.commit()
             return True
         return False
     
-    def remove(self, key, value):
-        data = self.get(key)
+    def remove(self, guild_id, key, value):
+        data = self.get(guild_id, key)
         if value in data:
             data.remove(value)
-            self.cursor.execute("REPLACE INTO filter_data (key, value) VALUES (?, ?)", (key, json.dumps(data)))
+            self.cursor.execute("REPLACE INTO filter_data (guild_id, key, value) VALUES (?, ?, ?)", (guild_id, key, json.dumps(data)))
             self.conn.commit()
             return True
         return False
     
-    def clear(self, key):
-        self.cursor.execute("DELETE FROM filter_data WHERE key = ?", (key,))
+    def clear(self, guild_id, key):
+        self.cursor.execute("DELETE FROM filter_data WHERE guild_id = ? AND key = ?", (guild_id, key))
         self.conn.commit()
 
 class FilterCog(commands.Cog):
@@ -50,7 +52,7 @@ class FilterCog(commands.Cog):
         self.bot = bot
         self.config = Config.get_conf(self, identifier=1234567890, force_registration=True)
         self.storage = FilterStorage()
-        self.config.register_global(
+        self.config.register_guild(
             logFiltered=True,
             logChannelId=None,
             ignorePrivateMessages=False,
@@ -64,6 +66,10 @@ class FilterCog(commands.Cog):
             muteAfterOffenseNumber=3,
             offenseExpireMinutes=30,
             offenses=[],
+            deleteFromBots=False,
+            deleteFromWebhooks=False,
+            restrictToChannel=None,
+            notifyOnDelete=True
         )
 
     @commands.Cog.listener()
@@ -72,13 +78,20 @@ class FilterCog(commands.Cog):
 
     @commands.Cog.listener()
     async def on_message(self, message):
-        if message.author.bot:
+        if message.author.bot and not await self.config.deleteFromBots():
+            return
+        
+        if message.webhook_id and not await self.config.deleteFromWebhooks():
             return
         
         if isinstance(message.channel, discord.DMChannel) and await self.config.ignorePrivateMessages():
             return
         
-        words = self.storage.get("words")
+        restrict_channel = await self.config.restrictToChannel()
+        if restrict_channel and message.channel.id != restrict_channel:
+            return
+        
+        words = self.storage.get(message.guild.id, "words")
         case_sensitive = await self.config.caseSensitive()
         message_content = message.content if case_sensitive else message.content.lower()
         
@@ -87,58 +100,61 @@ class FilterCog(commands.Cog):
             if word_check in message_content:
                 try:
                     await message.delete()
-                    await message.author.send(f"Your message was deleted because it contained a filtered word: `{word}`")
+                    if await self.config.notifyOnDelete():
+                        embed = discord.Embed(title="Message Deleted", description=f"Your message was deleted because it contained a filtered word: `{word}`", color=discord.Color.red())
+                        await message.author.send(embed=embed)
                     log_channel_id = await self.config.logChannelId()
                     if log_channel_id:
                         log_channel = message.guild.get_channel(log_channel_id)
                         if log_channel:
-                            await log_channel.send(f"Deleted a message from {message.author.mention} containing a filtered word: `{word}`")
+                            log_embed = discord.Embed(title="Filtered Message", description=f"Deleted a message from {message.author.mention} containing a filtered word: `{word}`", color=discord.Color.red())
+                            await log_channel.send(embed=log_embed)
                     return
                 except discord.Forbidden:
                     await message.channel.send("I don't have permission to delete messages.", delete_after=5)
                 except discord.HTTPException:
                     print("Failed to delete message due to an HTTP error")
 
-    @commands.group(invoke_without_command=True)
+    @commands.hybrid_group()
     async def filter(self, ctx):
         """Manage the filter system."""
         await ctx.send_help(ctx.command)
 
-    @filter.command()
+    @filter.command(name="addword")
     async def addword(self, ctx, word: str):
         """Add a word to the filter list."""
-        if self.storage.add("words", word):
+        if self.storage.add(ctx.guild.id, "words", word):
             await ctx.send(f"Added `{word}` to the filter list.")
         else:
             await ctx.send(f"`{word}` is already in the filter list.")
 
-    @filter.command()
+    @filter.command(name="removeword")
     async def removeword(self, ctx, word: str):
         """Remove a word from the filter list."""
-        if self.storage.remove("words", word):
+        if self.storage.remove(ctx.guild.id, "words", word):
             await ctx.send(f"Removed `{word}` from the filter list.")
         else:
             await ctx.send(f"`{word}` was not found in the filter list.")
 
-    @filter.command()
+    @filter.command(name="listwords")
     async def listwords(self, ctx):
         """List all words in the filter."""
-        words = self.storage.get("words")
+        words = self.storage.get(ctx.guild.id, "words")
         await ctx.send(f"Filtered words: {', '.join(words) if words else 'None'}")
 
-    @filter.command()
+    @filter.command(name="clearwords")
     async def clearwords(self, ctx):
         """Clear all words from the filter list."""
-        self.storage.clear("words")
+        self.storage.clear(ctx.guild.id, "words")
         await ctx.send("All filtered words have been cleared.")
 
-    @filter.command()
+    @filter.command(name="setlogchannel")
     async def setlogchannel(self, ctx, channel: discord.TextChannel):
         """Set the logging channel."""
         await self.config.logChannelId.set(channel.id)
         await ctx.send(f"Log channel set to {channel.mention}")
 
-    @filter.command()
+    @filter.command(name="listautomodrules")
     async def listautomodrules(self, ctx):
         """List all AutoMod rules in the server."""
         guild = ctx.guild
