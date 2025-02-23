@@ -29,6 +29,8 @@ class FilterStorage:
             data.append(value)
             self.cursor.execute("REPLACE INTO filter_data (key, value) VALUES (?, ?)", (key, json.dumps(data)))
             self.conn.commit()
+            return True
+        return False
     
     def remove(self, key, value):
         data = self.get(key)
@@ -36,6 +38,8 @@ class FilterStorage:
             data.remove(value)
             self.cursor.execute("REPLACE INTO filter_data (key, value) VALUES (?, ?)", (key, json.dumps(data)))
             self.conn.commit()
+            return True
+        return False
     
     def clear(self, key):
         self.cursor.execute("DELETE FROM filter_data WHERE key = ?", (key,))
@@ -83,6 +87,7 @@ class FilterCog(commands.Cog):
             if word_check in message_content:
                 try:
                     await message.delete()
+                    await message.author.send(f"Your message was deleted because it contained a filtered word: `{word}`")
                     log_channel_id = await self.config.logChannelId()
                     if log_channel_id:
                         log_channel = message.guild.get_channel(log_channel_id)
@@ -94,37 +99,46 @@ class FilterCog(commands.Cog):
                 except discord.HTTPException:
                     print("Failed to delete message due to an HTTP error")
 
-    @commands.hybrid_command()
+    @commands.group(invoke_without_command=True)
+    async def filter(self, ctx):
+        """Manage the filter system."""
+        await ctx.send_help(ctx.command)
+
+    @filter.command()
     async def addword(self, ctx, word: str):
         """Add a word to the filter list."""
-        self.storage.add("words", word)
-        await ctx.send(f"Added `{word}` to the filter list.")
+        if self.storage.add("words", word):
+            await ctx.send(f"Added `{word}` to the filter list.")
+        else:
+            await ctx.send(f"`{word}` is already in the filter list.")
 
-    @commands.hybrid_command()
+    @filter.command()
     async def removeword(self, ctx, word: str):
         """Remove a word from the filter list."""
-        self.storage.remove("words", word)
-        await ctx.send(f"Removed `{word}` from the filter list.")
+        if self.storage.remove("words", word):
+            await ctx.send(f"Removed `{word}` from the filter list.")
+        else:
+            await ctx.send(f"`{word}` was not found in the filter list.")
 
-    @commands.hybrid_command()
+    @filter.command()
     async def listwords(self, ctx):
         """List all words in the filter."""
         words = self.storage.get("words")
         await ctx.send(f"Filtered words: {', '.join(words) if words else 'None'}")
 
-    @commands.hybrid_command()
+    @filter.command()
     async def clearwords(self, ctx):
         """Clear all words from the filter list."""
         self.storage.clear("words")
         await ctx.send("All filtered words have been cleared.")
 
-    @commands.hybrid_command()
+    @filter.command()
     async def setlogchannel(self, ctx, channel: discord.TextChannel):
         """Set the logging channel."""
         await self.config.logChannelId.set(channel.id)
         await ctx.send(f"Log channel set to {channel.mention}")
 
-    @commands.hybrid_command()
+    @filter.command()
     async def listautomodrules(self, ctx):
         """List all AutoMod rules in the server."""
         guild = ctx.guild
