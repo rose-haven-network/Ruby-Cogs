@@ -6,7 +6,7 @@ from redbot.core import commands, Config
 class FilterCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        self.config = Config.get_conf(self, identifier=1234567890)
+        self.config = Config.get_conf(self, identifier=1234567890, force_registration=True)
         self.config.register_global(
             phrases=[],
             words=[],
@@ -25,6 +25,10 @@ class FilterCog(commands.Cog):
             muteAfterOffenseNumber=3,
             offenseExpireMinutes=60
         )
+
+    @commands.Cog.listener()
+    async def on_ready(self):
+        print(f"{self.__class__.__name__} cog has been loaded.")
 
     async def send_log(self, log_channel_id, message):
         log_channel = self.bot.get_channel(log_channel_id)

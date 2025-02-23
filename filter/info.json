@@ -1,9 +1,8 @@
 {
-    "author": ["Valerie"],
+    "author": ["MystixMew"],
     "description": "A moderation cog that filters messages based on configured word lists.",
     "install_msg": "Thanks for installing the Filter Cog! Use `[p]help FilterCog` to get started.",
     "short": "Message filtering moderation cog.",
-    "requirements": [],
     "tags": ["moderation", "filter", "messages"],
     "type": "COG"
 }
