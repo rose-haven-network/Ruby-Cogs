@@ -4,5 +4,7 @@
     "install_msg": "Thanks for installing the Filter Cog! Use `[p]help FilterCog` to get started.",
     "short": "Message filtering moderation cog.",
     "tags": ["moderation", "filter", "messages"],
-    "type": "COG"
-}
+    "type": "COG",
+    "min_bot_version": "3.5.16"
+  }
+  
