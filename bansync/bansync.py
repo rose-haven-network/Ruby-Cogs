@@ -1,50 +1,94 @@
-import asyncio
-import logging
-from datetime import datetime
-
 import discord
 from redbot.core import commands
-
-log = logging.getLogger("red.pcxcogs.bansync")
+from redbot.core.bot import Red
+from redbot.core import Config
 
 class BanSync(commands.Cog):
-    """Automatically sync moderation actions across servers."""
+    """A cog for syncing bans across multiple servers."""
 
-    def __init__(self, bot: commands.Bot) -> None:
+    def __init__(self, bot: Red):
         self.bot = bot
+        self.config = Config.get_conf(self, identifier=1234567890, force_registration=True)
+        default_guild = {
+            "sync_bans": True,
+            "ban_list": []
+        }
+        self.config.register_guild(**default_guild)
 
-    async def import_existing_bans(self) -> None:
-        """Import existing bans into every server with BanSync enabled."""
-        await self.bot.wait_until_ready()
-        for guild in self.bot.guilds:
-            try:
-                bans = await guild.bans()
-                for ban_entry in bans:
-                    user = ban_entry.user
-                    log.info(f"Importing ban for {user} from {guild.name}")
-                    await self._sync_ban_to_other_servers(guild, user)
-            except discord.Forbidden:
-                log.warning(f"Missing permissions to fetch bans in {guild.name}")
-            except discord.HTTPException as e:
-                log.error(f"Failed to fetch bans in {guild.name}: {e}")
+    async def initialize(self):
+        """Optional initialization if needed"""
+        pass  # Add setup logic if required
 
-    async def _sync_ban_to_other_servers(self, source_guild: discord.Guild, user: discord.User) -> None:
-        """Sync a ban to other servers that have BanSync enabled."""
-        for guild in self.bot.guilds:
-            if guild.id != source_guild.id:
+    @commands.command()
+    @commands.admin_or_permissions(ban_members=True)
+    async def baninfo(self, ctx: commands.Context, user_id: int):
+        """Get information about a banned user."""
+        try:
+            ban_list = await ctx.guild.bans()
+            for entry in ban_list:
+                if entry.user.id == user_id:
+                    await ctx.send(f"🔨 User `{entry.user}` is banned for: {entry.reason or 'No reason provided.'}")
+                    return
+            await ctx.send("✅ User is not banned.")
+        except discord.Forbidden:
+            await ctx.send("❌ I don't have permission to view the ban list.")
+        except Exception as e:
+            await ctx.send(f"⚠ An error occurred: {e}")
+
+    @commands.Cog.listener()
+    async def on_member_ban(self, guild: discord.Guild, user: discord.User):
+        """Sync bans across all servers when a user is banned."""
+        sync_enabled = await self.config.guild(guild).sync_bans()
+        if not sync_enabled:
+            return
+        
+        reason = None
+        try:
+            ban_entry = await guild.fetch_ban(user)
+            reason = ban_entry.reason
+        except discord.NotFound:
+            pass  # If ban details can't be fetched, continue without a reason
+
+        for g in self.bot.guilds:
+            if g != guild and g.me.guild_permissions.ban_members:
                 try:
-                    await guild.ban(user, reason=f"BanSync: Imported from {source_guild.name}")
-                    log.info(f"Applied ban for {user} in {guild.name} from {source_guild.name}")
+                    await g.ban(user, reason=f"Synced Ban: {reason or 'No reason provided.'}")
+                    await self.config.guild(g).ban_list.set(await self.config.guild(g).ban_list() + [user.id])
                 except discord.Forbidden:
-                    log.warning(f"Missing permissions to ban {user} in {guild.name}")
-                except discord.HTTPException as e:
-                    log.error(f"Failed to ban {user} in {guild.name}: {e}")
+                    continue  # Skip if bot lacks permissions
+                except Exception as e:
+                    print(f"Error banning {user} in {g.name}: {e}")
+
+    @commands.Cog.listener()
+    async def on_member_unban(self, guild: discord.Guild, user: discord.User):
+        """Sync unbans across all servers when a user is unbanned."""
+        sync_enabled = await self.config.guild(guild).sync_bans()
+        if not sync_enabled:
+            return
+
+        for g in self.bot.guilds:
+            if g != guild and g.me.guild_permissions.ban_members:
+                try:
+                    await g.unban(user, reason="Synced Unban")
+                    async with self.config.guild(g).ban_list() as ban_list:
+                        if user.id in ban_list:
+                            ban_list.remove(user.id)
+                except discord.Forbidden:
+                    continue  # Skip if bot lacks permissions
+                except Exception as e:
+                    print(f"Error unbanning {user} in {g.name}: {e}")
 
     @commands.command()
     @commands.guild_only()
-    @commands.is_owner()
-    async def importbans(self, ctx: commands.Context) -> None:
-        """Manually trigger the import of existing bans."""
-        await ctx.send("Starting ban import...")
-        await self.import_existing_bans()
-        await ctx.send("Ban import completed.")
+    @commands.admin_or_permissions(administrator=True)
+    async def syncbans(self, ctx: commands.Context, enabled: bool):
+        """Enable or disable automatic ban syncing."""
+        await self.config.guild(ctx.guild).sync_bans.set(enabled)
+        status = "enabled" if enabled else "disabled"
+        await ctx.send(f"🔄 Ban sync has been {status} for this server.")
+
+async def setup(bot: Red):
+    """Setup function for the cog."""
+    cog = BanSync(bot)
+    await cog.initialize()
+    bot.add_cog(cog)

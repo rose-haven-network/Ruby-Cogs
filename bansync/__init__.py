@@ -14,5 +14,5 @@ with Path(__file__).parent.joinpath("info.json").open() as fp:
 async def setup(bot: Red) -> None:
     """Load BanSync cog."""
     cog = BanSync(bot)
-    await cog.initialize()
     await bot.add_cog(cog)
+    await cog.initialize()
