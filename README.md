@@ -1,4 +1,4 @@
-# Ava Cogs
+# Ruby Cogs
 
 ## This repository is being specifically built for our fork of Red-DiscordBot
 - This will contain every cog we use on the instance, and modified accordingly for our use.
