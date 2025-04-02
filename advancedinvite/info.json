@@ -1,0 +1,17 @@
+{
+    "name": "advancedinvite",
+    "short": "Embed the invite command",
+    "description": "Embeds the invite command if possible.",
+    "end_user_data_statement": "This cog does not store end user data.",
+    "install_msg": "Thanks for installing Jojo's AdvancedInvite cog!\nThis cog was requested by DSC#6238 :heart:\n\nTake a look at `[p]help invite` for setting commands.",
+    "author": [
+        "Jojo#7791"
+    ],
+    "required_cogs": {},
+    "requirements": ["emoji"],
+    "tags": ["Utility"],
+    "min_bot_version": "3.5.0.dev0",
+    "hidden": false,
+    "disabled": false,
+    "type": "COG"
+}

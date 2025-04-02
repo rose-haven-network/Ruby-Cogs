@@ -34,13 +34,14 @@ del AAA3A_utils
 #     )
 
 from redbot.core.bot import Red  # isort:skip
+
 from redbot.core.utils import get_end_user_data_statement
 
-from .dictionary import Dictionary
+from .consolelogs import ConsoleLogs
 
 __red_end_user_data_statement__ = get_end_user_data_statement(file=__file__)
 
 
 async def setup(bot: Red) -> None:
-    cog = Dictionary(bot)
+    cog = ConsoleLogs(bot)
     await bot.add_cog(cog)

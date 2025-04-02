@@ -34,13 +34,29 @@ del AAA3A_utils
 #     )
 
 from redbot.core.bot import Red  # isort:skip
+import asyncio
+
 from redbot.core.utils import get_end_user_data_statement
 
-from .dictionary import Dictionary
+from .autotraceback import AutoTraceback
 
 __red_end_user_data_statement__ = get_end_user_data_statement(file=__file__)
 
+old_traceback = None
+
+
+async def setup_after_ready(bot: Red) -> None:
+    global old_traceback
+    await bot.wait_until_red_ready()
+    cog = AutoTraceback(bot)
+    if old_traceback := bot.get_command("traceback"):
+        bot.remove_command(old_traceback.name)
+    await bot.add_cog(cog)
+
 
 async def setup(bot: Red) -> None:
-    cog = Dictionary(bot)
-    await bot.add_cog(cog)
+    asyncio.create_task(setup_after_ready(bot))
+
+
+def teardown(bot: Red) -> None:
+    bot.add_command(old_traceback)

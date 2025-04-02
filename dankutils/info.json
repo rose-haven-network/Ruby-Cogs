@@ -1,0 +1,14 @@
+{
+  "author": ["Kuro"],
+  "description": "Dank Memer related commands and utilities.",
+  "disabled": false,
+  "end_user_data_statement": "This cog does not store any end user data.",
+  "hidden": false,
+  "install_msg": "Thanks for installing `DankUtils`! Get started with `[p]help DankUtils`.\nThis cog has docs! Check it out at <https://kuro-cogs.readthedocs.io/en/latest/cogs/dankutils.html>.",
+  "min_bot_version": "3.5.0",
+  "name": "DankUtils",
+  "requirements": ["git+https://github.com/Kuro-Rui/Kuro-Utils"],
+  "short": "Dank Memer commands.",
+  "tags": ["dankmemer", "dank memer"],
+  "type": "COG"
+}

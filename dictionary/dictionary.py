@@ -1,185 +1,139 @@
+from AAA3A_utils import Cog  # isort:skip
+from redbot.core import commands, app_commands  # isort:skip
+from redbot.core.bot import Red  # isort:skip
+from redbot.core.i18n import Translator, cog_i18n  # isort:skip
+import typing  # isort:skip
+
+from urllib.parse import quote_plus
+
 import aiohttp
-import discord
-import contextlib
-from bs4 import BeautifulSoup
-import json
-import logging
-import re
-from redbot.core import commands
-from redbot.core.utils.chat_formatting import pagify
+from redbot.core.utils.chat_formatting import humanize_list
+
+from .types import Word
+from .view import DictionaryView
+
+# Credits:
+# General repo credits.
+
+_: Translator = Translator("Dictionary", __file__)
 
 
-log = logging.getLogger("red.aikaterna.dictionary")
+@cog_i18n(_)
+class Dictionary(Cog):
+    """A cog to search an english term/word in the dictionary! Synonyms, antonyms, phonetics (with audio)..."""
 
+    def __init__(self, bot: Red) -> None:
+        super().__init__(bot=bot)
 
-class Dictionary(commands.Cog):
-    """
-    Word, yo
-    Parts of this cog are adapted from the PyDictionary library.
-    """
+        self._session: aiohttp.ClientSession = None
+        self.cache: typing.Dict[str, Word] = {}
 
-    async def red_delete_data_for_user(self, **kwargs):
-        """Nothing to delete"""
-        return
+    async def cog_load(self) -> None:
+        await super().cog_load()
+        self._session: aiohttp.ClientSession = aiohttp.ClientSession()
 
-    def __init__(self, bot):
-        self.bot = bot
-        self.session = aiohttp.ClientSession()
+    async def cog_unload(self) -> None:
+        await self._session.close()
+        await super().cog_unload()
 
-    def cog_unload(self):
-        self.bot.loop.create_task(self.session.close())
-
-    @commands.command()
-    async def define(self, ctx, *, word: str):
-        """Displays definitions of a given word."""
-        search_msg = await ctx.send("Searching...")
-        search_term = word.split(" ", 1)[0]
-        result = await self._definition(ctx, search_term)
-        str_buffer = ""
-        if not result:
-            with contextlib.suppress(discord.NotFound):
-                await search_msg.delete()
-            await ctx.send("This word is not in the dictionary.")
-            return
-        for key in result:
-            str_buffer += f"\n**{key}**: \n"
-            counter = 1
-            j = False
-            for val in result[key]:
-                if val.startswith("("):
-                    str_buffer += f"{str(counter)}. *{val})* "
-                    counter += 1
-                    j = True
-                else:
-                    if j:
-                        str_buffer += f"{val}\n"
-                        j = False
-                    else:
-                        str_buffer += f"{str(counter)}. {val}\n"
-                        counter += 1
-        with contextlib.suppress(discord.NotFound):
-            await search_msg.delete()
-        for page in pagify(str_buffer, delims=["\n"]):
-            await ctx.send(page)
-
-    async def _definition(self, ctx, word):
-        data = await self._get_soup_object(f"http://wordnetweb.princeton.edu/perl/webwn?s={word}")
-        if not data:
-            return await ctx.send("Error fetching data.")
-        types = data.findAll("h3")
-        length = len(types)
-        lists = data.findAll("ul")
-        out = {}
-        if not lists:
-            return
-        for a in types:
-            reg = str(lists[types.index(a)])
-            meanings = []
-            for x in re.findall(r">\s\((.*?)\)\s<", reg):
-                if "often followed by" in x:
-                    pass
-                elif len(x) > 5 or " " in str(x):
-                    meanings.append(x)
-            name = a.text
-            out[name] = meanings
-        return out
-
-    @commands.command()
-    async def antonym(self, ctx, *, word: str):
-        """Displays antonyms for a given word."""
-        search_term = word.split(" ", 1)[0]
-        result = await self._antonym_or_synonym(ctx, "antonyms", search_term)
-        if not result:
-            await ctx.send("This word is not in the dictionary or nothing was found.")
-            return
-
-        result_text = "*, *".join(result)
-        msg = f"Antonyms for **{search_term}**: *{result_text}*"
-        for page in pagify(msg, delims=["\n"]):
-            await ctx.send(page)
-
-    @commands.command()
-    async def synonym(self, ctx, *, word: str):
-        """Displays synonyms for a given word."""
-        search_term = word.split(" ", 1)[0]
-        result = await self._antonym_or_synonym(ctx, "synonyms", search_term)
-        if not result:
-            await ctx.send("This word is not in the dictionary or nothing was found.")
-            return
-
-        result_text = "*, *".join(result)
-        msg = f"Synonyms for **{search_term}**: *{result_text}*"
-        for page in pagify(msg, delims=["\n"]):
-            await ctx.send(page)
-
-    async def _antonym_or_synonym(self, ctx, lookup_type, word):
-        if lookup_type not in ["antonyms", "synonyms"]:
-            return None
-        data = await self._get_soup_object(f"http://www.thesaurus.com/browse/{word}")
-        if not data:
-            await ctx.send("Error getting information from the website.")
-            return
-
-        script = data.find("script", id="preloaded-state")
-        if script:
-            script_text = script.string
-            script_text = script_text.strip()
-            script_text = script_text.replace("window.__PRELOADED_STATE__ = ", "")
-        else:
-            await ctx.send("Error fetching script from the website.")
-            return
-
-        try:
-            data = json.loads(script_text)
-        except json.decoder.JSONDecodeError:
-            await ctx.send("Error decoding script from the website.")
-            return
-        except Exception as e:
-            log.exception(e, exc_info=e)
-            await ctx.send("Something broke. Check your console for more information.")
-            return
-
-        try:
-            data_prefix = data["thesaurus"]["thesaurusData"]["data"]["slugs"][0]["entries"][0]["partOfSpeechGroups"][0]["shortDefinitions"][0]
-        except KeyError:
-            return None
-
-        if lookup_type == "antonyms":
-            try:
-                antonym_subsection = data_prefix["antonyms"]
-            except KeyError:
+    async def get_word(self, query: str) -> Word:
+        if query in self.cache:
+            return self.cache[query]
+        url = f"https://api.dictionaryapi.dev/api/v2/entries/en/{quote_plus(query)}"
+        async with self._session.get(url) as r:
+            json_content = await r.json()
+        if "title" in json_content:
+            if json_content["title"] == "No Definitions Found":
                 return None
-            antonyms = []
-            for item in antonym_subsection:
-                try:
-                    antonyms.append(item["targetWord"])
-                except KeyError:
-                    pass
-            if antonyms:
-                return antonyms
             else:
-                return None
+                raise commands.UserFeedbackCheckFailure(json_content["title"])
+        json_content = json_content[0]
+        word = Word(
+            url=url,
+            source_url=json_content["sourceUrls"][0] if json_content.get("sourceUrls") else None,
+            word=json_content["word"],
+            phonetics=[
+                {
+                    "text": phonetic.get("text"),
+                    "audio_url": phonetic["audio"],
+                    "audio_file": None,
+                    "source_url": phonetic.get("sourceUrl"),
+                }
+                for phonetic in json_content["phonetics"]
+            ],
+            meanings={
+                meaning["partOfSpeech"]: [
+                    {
+                        "definition": definition["definition"],
+                        "synonyms": definition["synonyms"],
+                        "antonyms": definition["antonyms"],
+                        "example": definition.get("example"),
+                    }
+                    for definition in meaning["definitions"]
+                ]
+                for meaning in json_content["meanings"]
+            },
+        )
+        self.cache[query] = word
+        return word
 
-        if lookup_type == "synonyms":
-            try:
-                synonyms_subsection = data_prefix["synonyms"]
-            except KeyError:
-                return None
-            synonyms = []
-            for item in synonyms_subsection:
-                try:
-                    synonyms.append(item["targetWord"])
-                except KeyError:
-                    pass
-            if synonyms:
-                return synonyms
-            else:
-                return None
+    @commands.bot_has_permissions(embed_links=True)
+    @commands.hybrid_command(aliases=["define"])
+    @app_commands.allowed_installs(guilds=True, users=True)
+    async def dictionary(self, ctx: commands.Context, query: str) -> None:
+        """Search a word in the english dictionnary."""
+        word = await self.get_word(query)
+        if word is None:
+            raise commands.UserFeedbackCheckFailure(_("Word not found in English dictionary."))
+        await DictionaryView(cog=self, word=word).start(ctx)
 
-    async def _get_soup_object(self, url):
-        try:
-            async with self.session.request("GET", url) as response:
-                return BeautifulSoup(await response.text(), "html.parser")
-        except Exception:
-            log.error("Error fetching dictionary.py related webpage", exc_info=True)
-            return None
+    @commands.Cog.listener()
+    async def on_assistant_cog_add(
+        self, assistant_cog: typing.Optional[commands.Cog] = None
+    ) -> None:  # Vert's Assistant integration/third party.
+        if assistant_cog is None:
+            return self.get_word_in_dictionary_for_assistant
+        schema = {
+            "name": "get_word_in_dictionary_for_assistant",
+            "description": "Get the meanings, the definition, the synonyms and the antonyms of an English word.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "query": {
+                        "type": "string",
+                        "description": "The word to search in the English dictionary.",
+                    },
+                },
+                "required": ["query"],
+            },
+        }
+        await assistant_cog.register_function(cog_name=self.qualified_name, schema=schema)
+
+    async def get_word_in_dictionary_for_assistant(self, query: str, *args, **kwargs):
+        word = await self.get_word(query)
+        if word is None:
+            return "Word not found in English dictionary."
+        meanings = ""
+        for meaning in word.meanings:
+            meanings += "\n\n" + "\n".join(
+                [
+                    (f"{n}. " if len(word.meanings[meaning]) > 1 else "")
+                    + f"{definition['definition']}"
+                    + (
+                        f"\n- Synonyms: {humanize_list(definition['synonyms'])}"
+                        if definition["synonyms"]
+                        else ""
+                    )
+                    + (
+                        f"\n- Antonyms: {humanize_list(definition['antonyms'])}"
+                        if definition["antonyms"]
+                        else ""
+                    )
+                    for n, definition in enumerate(word.meanings[meaning], start=1)
+                ]
+            )
+            data = {
+                "Word": word.word,
+                "Meanings": meanings,
+            }
+            return [f"{key}: {value}\n" for key, value in data.items() if value is not None]
