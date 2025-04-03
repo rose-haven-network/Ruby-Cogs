@@ -1,0 +1,16 @@
+{
+  "author": [
+    "Valerie"
+  ],
+  "install_msg": "Thank you for installing Modrinth Tracker",
+  "name": "Modrinth tracker",
+  "disabled": false,
+  "short": "Track Modrinth Projects",
+  "description": "Track Modrinth Projects..",
+  "tags": [
+    "modrinth"
+  ],
+  "requirements": []
+  "min_bot_version": "3.5.0",
+  "hidden": false
+}
