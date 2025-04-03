@@ -18,29 +18,29 @@ class ModrinthTracker(commands.Cog):
 
     @modrinth.command()
     async def add(self, ctx, project_id: str, channel: discord.TextChannel):
-        tracked_projects = await self.config.tracked_projects()
+        tracked_projects = await self.config.guild(ctx.guild).tracked_projects()
         if project_id in tracked_projects:
             await ctx.send("This project is already being tracked.")
             return
 
         tracked_projects[project_id] = {"channel": channel.id, "latest_version": None}
-        await self.config.tracked_projects.set(tracked_projects)
+        await self.config.guild(ctx.guild).tracked_projects.set(tracked_projects)
         await ctx.send(f"Tracking project `{project_id}` in {channel.mention}.")
 
     @modrinth.command()
     async def remove(self, ctx, project_id: str):
-        tracked_projects = await self.config.tracked_projects()
+        tracked_projects = await self.config.guild(ctx.guild).tracked_projects()
         if project_id not in tracked_projects:
             await ctx.send("This project is not being tracked.")
             return
 
         del tracked_projects[project_id]
-        await self.config.tracked_projects.set(tracked_projects)
+        await self.config.guild(ctx.guild).tracked_projects.set(tracked_projects)
         await ctx.send(f"Stopped tracking project `{project_id}`.")
 
     async def check_updates(self):
         async with aiohttp.ClientSession() as session:
-            tracked_projects = await self.config.tracked_projects()
+            tracked_projects = await self.config.guild(ctx.guild).tracked_projects()
             for project_id, data in tracked_projects.items():
                 url = BASE_URL + project_id
                 async with session.get(url) as response:
@@ -58,7 +58,7 @@ class ModrinthTracker(commands.Cog):
 
                     tracked_projects[project_id]["latest_version"] = latest_version
 
-            await self.config.tracked_projects.set(tracked_projects)
+            await self.config.guild(ctx.guild).tracked_projects.set(tracked_projects)
 
     @commands.Cog.listener()
     async def on_ready(self):
