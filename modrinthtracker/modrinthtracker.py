@@ -1,5 +1,6 @@
 import discord
 import aiohttp
+from datetime import timedelta
 from redbot.core import commands, Config, checks
 
 BASE_URL = "https://api.modrinth.com/v2/project/"
@@ -8,7 +9,7 @@ class ModrinthTracker(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.config = Config.get_conf(self, identifier=1234567890, force_registration=True)
-        self.config.register_global(tracked_projects={})
+        self.config.register_guild(tracked_projects={})
 
     @commands.group()
     @checks.admin()
@@ -66,5 +67,4 @@ class ModrinthTracker(commands.Cog):
             await discord.utils.sleep_until(discord.utils.utcnow().replace(second=0, microsecond=0) + timedelta(minutes=5))
 
 async def setup(bot):
-    cog = ModrinthTracker(bot)
-    bot.add_cog(cog)
+    await bot.add_cog(ModrinthTracker(bot))
