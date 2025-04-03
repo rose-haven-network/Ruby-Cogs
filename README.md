@@ -27,3 +27,4 @@ Credits:
 [Vert Cogs](https://github.com/vertyco/vrt-cogs)  
 [Vex Cogs](https://github.com/Vexed01/Vex-Cogs)  
 [x26 Cogs](https://github.com/Twentysix26/x26-Cogs)  
+[Toxic Cogs](https://github.com/NeuroAssassin/Toxic-Cogs)  
